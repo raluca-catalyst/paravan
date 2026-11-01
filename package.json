@@ -1,0 +1,32 @@
+{
+  "name": "paravan",
+  "version": "1.0.0",
+  "description": "Pseudonimizare locală a datelor personale",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "build": "node scripts/build.mjs",
+    "e2e": "node scripts/build.mjs && playwright test",
+    "fetch-data": "node scripts/fetch-data.mjs"
+  },
+  "author": "Raluca Păduraru",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@fontsource/barlow": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@playwright/test": "^1.64.1",
+    "dictionary-ro": "^3.0.0",
+    "docx": "^9.15.1",
+    "esbuild": "^0.28.2",
+    "jszip": "^3.10.2",
+    "nspell": "^2.1.5",
+    "papaparse": "^5.7.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.4.299",
+    "vitest": "^4.1.12",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  }
+}
