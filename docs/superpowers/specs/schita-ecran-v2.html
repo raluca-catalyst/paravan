@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<title>Anonimizator local</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e0b1e; --bg-mid:#160e35; --card:rgba(255,255,255,0.045);
+    --border:rgba(167,139,250,0.14); --lavender:#a78bfa; --lavender-lt:#c4b5fd; --lavender-dk:#7c3aed;
+    --amber:#f5b54a; --text:#f1eefd; --text-sec:rgba(241,238,253,0.58); --text-muted:rgba(241,238,253,0.32);
+    --mono:'JetBrains Mono',monospace; --body:'Barlow',sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.65;
+    background-image:
+      radial-gradient(ellipse 90% 55% at 50% -5%, #2d1569 0%, transparent 65%),
+      radial-gradient(ellipse 55% 35% at 95% 15%, rgba(109,40,217,0.18) 0%, transparent 55%),
+      radial-gradient(ellipse 45% 25% at 5% 85%, rgba(91,33,182,0.12) 0%, transparent 55%);
+    min-height:100vh}
+  .wrap{padding:36px 56px 64px}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+  h1{font-family:var(--mono);font-weight:700;letter-spacing:-0.02em;line-height:1.2;font-size:clamp(1.7rem,4vw,2.6rem);margin:0}
+  h1 em{color:var(--lavender-lt);font-style:italic}
+  .offline{font-family:var(--mono);font-size:12px;color:var(--lavender-lt);border:1px solid var(--border);border-radius:100px;padding:6px 14px;white-space:nowrap}
+  p.lead{color:var(--text-sec);text-align:justify;hyphens:auto;margin:0 0 36px}
+  .steps{position:relative;padding-left:44px}
+  .steps::before{content:"";position:absolute;left:14px;top:18px;bottom:40px;border-left:3px dotted rgba(167,139,250,0.5)}
+  .step{position:relative;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:22px}
+  .step.active{background:linear-gradient(160deg,rgba(124,58,237,0.16),rgba(255,255,255,0.03));border-top:2px solid var(--lavender)}
+  .step h2{font-family:var(--mono);font-weight:700;letter-spacing:-0.02em;font-size:clamp(1.1rem,2vw,1.35rem);margin:0 0 10px}
+  .step h2 .n{color:var(--amber);margin-right:10px}
+  .step p{color:var(--text-sec);text-align:justify;hyphens:auto;margin:0 0 14px}
+  .drop{border:1.5px dashed rgba(167,139,250,0.35);border-radius:12px;padding:18px;text-align:center;color:var(--text-sec);font-size:14px}
+  .drop b{color:var(--text);font-family:var(--mono);font-weight:500}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 12px}
+  .chip{font-family:var(--mono);font-size:12px;border-radius:100px;padding:5px 12px;border:1px solid var(--border);color:var(--lavender-lt);background:rgba(167,139,250,0.06)}
+  .preview{background:rgba(14,11,30,0.6);border:1px solid var(--border);border-radius:10px;padding:16px 18px;font-size:15px;line-height:1.8;text-align:justify;hyphens:auto}
+  .preview .who{font-family:var(--mono);font-size:13px;color:var(--text-muted)}
+  .tag{font-family:var(--mono);font-size:13px;color:var(--lavender-lt);background:rgba(167,139,250,0.14);border-radius:5px;padding:1px 6px}
+  .row{display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  input{flex:1;min-width:260px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--body);font-size:15px;padding:10px 12px}
+  input::placeholder{color:var(--text-muted)}
+  .btn{font-family:var(--mono);font-size:13px;text-transform:uppercase;letter-spacing:0.04em;color:#fff;border:none;border-radius:6px;padding:11px 18px;cursor:pointer;
+    background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 0 18px rgba(124,58,237,0.28)}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--lavender-lt);box-shadow:none}
+  .warn{margin-top:14px;font-size:14px;color:var(--text-sec)}
+  .warn b{color:var(--lavender-lt);font-family:var(--mono);font-weight:500}
+  .prompt{font-family:var(--mono);font-size:13px;color:var(--lavender-lt);background:rgba(14,11,30,0.6);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+  footer{color:var(--text-muted);font-size:12px;margin-top:30px;text-align:justify}
+  /* tema luminoasă */
+  body.light{--bg:#ffffff;--card:rgba(167,139,250,0.06);--border:rgba(124,58,237,0.18);--lavender:#7c3aed;--lavender-lt:#7c3aed;
+    --amber:#d99a2b;--text:#1a1a1a;--text-sec:rgba(0,0,0,0.66);--text-muted:rgba(0,0,0,0.42);background-image:none}
+  body.light h1, body.light .step h2{color:#7c3aed}
+  body.light h1 em{color:#7c3aed}
+  body.light .step.active{background:linear-gradient(160deg,rgba(124,58,237,0.08),rgba(167,139,250,0.03))}
+  body.light .preview, body.light .prompt{background:#faf8ff}
+  body.light input{background:#fff}
+  body.light .tag{background:rgba(124,58,237,0.10)}
+  body.light .steps::before{border-left-color:rgba(124,58,237,0.45)}
+  header{margin-bottom:32px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Anonimizator <em>local</em></h1>
+    <button class="btn ghost" onclick="document.body.classList.toggle('light')">Luminos / Întunecat</button>
+  </header>
+
+  <div class="steps">
+    <div class="step active">
+      <h2><span class="n">1</span>Anonimizează</h2>
+      <div class="drop"><b>sesiune-coaching.docx</b> · încărcat · .md .txt .docx .pdf .csv .xlsx</div>
+      <div class="chips">
+        <span class="chip">14 nume</span><span class="chip">2 telefoane</span><span class="chip">1 email</span><span class="chip">1 localitate</span>
+      </div>
+      <div class="preview">
+        <span class="who">[PERSOANA_1]:</span> Săptămâna trecută am vorbit cu <span class="tag">[PERSOANA_2]</span> despre mutarea în <span class="tag">[LOCALITATE_1]</span>. Mi-a zis să-l sun la <span class="tag">[TELEFON_1]</span> după ce mă hotărăsc.<br>
+        <span class="who">Coach:</span> Și cum te-ai simțit după discuția cu <span class="tag">[PERSOANA_2]</span>?
+      </div>
+      <div class="row">
+        <input placeholder="A scăpat ceva? Scrie numele aici și apasă din nou">
+        <button class="btn ghost">Anonimizează din nou</button>
+      </div>
+      <div class="row">
+        <button class="btn">Descarcă fișierul anonimizat</button>
+        <button class="btn ghost">Descarcă cheia</button>
+      </div>
+      <p class="warn"><b>Verifică povestea, nu doar numele.</b> Regulile prind nume, telefoane și coduri. Un detaliu unic din poveste îl vezi doar tu.</p>
+    </div>
+
+    <div class="step">
+      <h2><span class="n">2</span>Lucrezi în AI</h2>
+      <p>Dă fișierul anonimizat chat-ului tău AI și cere ce ai nevoie. Adaugă la cerere fraza de mai jos, ca AI-ul să lase etichetele neatinse.</p>
+      <div class="prompt">Păstrează exact etichetele de tipul [PERSOANA_1], fără să le traduci sau să le modifici.</div>
+    </div>
+
+    <div class="step">
+      <h2><span class="n">3</span>Dezanonimizează</h2>
+      <p>Încarcă rezultatul de la AI și cheia de la pasul 1. Datele reale se pun la loc, iar restul textului rămâne cum l-a scris AI-ul.</p>
+      <div class="drop">Trage aici rezultatul de la AI și cheia</div>
+    </div>
+  </div>
+
+  <footer>Lista de nume: romanian-names-db (CC BY 4.0). Construit de Raluca Păduraru · upvance</footer>
+</div>
+</body>
+</html>
