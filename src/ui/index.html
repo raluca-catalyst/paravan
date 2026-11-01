@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; img-src data: blob:; worker-src blob:; connect-src blob: data:">
+<title>Paravan · pseudonimizare locală a datelor personale</title>
+<style>/*CSS*/</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Paravan</h1>
+      <p class="subtitle">pseudonimizare locală a datelor personale</p>
+    </div>
+    <button id="theme" class="btn ghost" type="button">Luminos / Întunecat</button>
+  </header>
+
+  <div class="steps">
+    <section class="step active" id="step1">
+      <h2><span class="n">1</span>Pseudonimizează</h2>
+      <label class="drop" id="drop1">
+        <input type="file" id="file1" accept=".md,.txt,.docx,.pdf,.csv,.xlsx">
+        <span id="file1-name">Alege sau trage aici un fișier: .md .txt .docx .pdf .csv .xlsx</span>
+      </label>
+      <textarea id="paste1" rows="3" placeholder="sau lipește textul aici"></textarea>
+      <div class="row"><button id="run1" class="btn" type="button">Pseudonimizează</button></div>
+      <p class="msg" id="msg1" role="status"></p>
+
+      <div id="result1" hidden>
+        <div class="chips" id="chips"></div>
+        <div class="preview" id="preview"></div>
+        <div class="row">
+          <input id="manual" type="text" placeholder="A scăpat ceva? Scrie aici și apasă din nou">
+          <button id="rerun" class="btn ghost" type="button">Ascunde și asta</button>
+        </div>
+        <div class="row">
+          <button id="dl-anon" class="btn" type="button">Descarcă fișierul pseudonimizat</button>
+          <button id="dl-key" class="btn ghost" type="button">Descarcă cheia</button>
+        </div>
+        <p class="note">Cheia conține datele reale. N-o da AI-ului.</p>
+        <p class="warn"><b>Verifică povestea, nu doar numele.</b> Regulile prind nume, telefoane și coduri. Un detaliu unic din poveste îl vezi doar tu.</p>
+      </div>
+    </section>
+
+    <section class="step" id="step2">
+      <h2><span class="n">2</span>Lucrezi în AI</h2>
+      <p>Dă fișierul pseudonimizat chat-ului tău AI și cere ce ai nevoie. Adaugă la cerere fraza de mai jos, ca AI-ul să lase etichetele neatinse.</p>
+      <div class="prompt-row">
+        <div class="prompt" id="prompt">Păstrează exact etichetele de tipul [PERSOANA_1], fără să le traduci sau să le modifici.</div>
+        <button id="copy-prompt" class="btn ghost" type="button">Copiază</button>
+      </div>
+    </section>
+
+    <section class="step" id="step3">
+      <h2><span class="n">3</span>Dezanonimizează</h2>
+      <p>Încarcă rezultatul de la AI sau lipește-l mai jos. Datele reale se pun la loc, iar restul textului rămâne cum l-a scris AI-ul.</p>
+      <label class="drop">
+        <input type="file" id="file3" accept=".md,.txt,.docx,.pdf,.csv,.xlsx">
+        <span id="file3-name">Alege sau trage aici rezultatul de la AI</span>
+      </label>
+      <textarea id="paste3" rows="3" placeholder="sau lipește aici răspunsul de la AI"></textarea>
+      <div class="keyline">Cheia: <span id="key-state">cheia de la pasul 1, din memorie</span>
+        <label class="btn ghost small">Încarcă altă cheie<input type="file" id="key3" accept=".json"></label></div>
+      <div class="row"><button id="run3" class="btn" type="button">Pune datele la loc</button>
+        <button id="dl-restored" class="btn ghost" type="button" hidden>Descarcă fișierul restaurat</button></div>
+      <p class="msg" id="msg3" role="status"></p>
+    </section>
+  </div>
+
+  <footer>Lista de nume: romanian-names-db (CC BY 4.0) · Localități: romania/localitati · Cuvinte: FrequencyWords (CC BY-SA 4.0). Construit de Raluca Păduraru · upvance</footer>
+</div>
+<script type="module">/*JS*/</script>
+</body>
+</html>
