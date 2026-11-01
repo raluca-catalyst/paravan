@@ -44,6 +44,16 @@ Un PDF scanat, fără text, primește un mesaj clar. În tabele, o coloană cu a
 
 În `exemple/` găsești o sesiune de coaching inventată, în `.md` și `.docx`, pe care poți încerca aplicația. Toate numele și datele de contact din ea sunt inventate.
 
+## Merge împreună cu transcrierea locală
+
+Dacă înregistrezi sesiuni, [transcript-local](https://github.com/raluca-catalyst/transcript-local) le transcrie pe laptop, fără internet. Treci apoi transcriptul prin Paravan înainte să-l dai unui AI pentru curățare, minută sau notă de sesiune.
+
+## Construiește-ți propria variantă
+
+Poți construi o aplicație ca asta și fără să fii programator. Copiază promptul de mai jos în ChatGPT Codex sau Claude Code, deschis într-un folder gol:
+
+> Construiește-mi o aplicație care merge pe laptop, fără internet, într-un singur fișier HTML pe care îl deschid cu dublu-click. Aplicația ascunde datele personale dintr-un fișier (.txt, .md, .docx, .pdf, .csv, .xlsx) înainte să-l dau unui AI: nume, telefoane, emailuri, CNP, IBAN, adrese. Fiecare dată devine o etichetă, de exemplu [PERSOANA_1], iar aplicația îmi dă o cheie cu datele reale. Apoi încarc răspunsul de la AI, iar aplicația pune datele reale la loc, fără să schimbe restul textului. Folosește liste de nume românești și reguli fixe, fără model AI. Testează-o pe un text inventat de tine și spune-mi ce n-a prins.
+
 ## Pentru cine vrea să modifice codul
 
 ```
