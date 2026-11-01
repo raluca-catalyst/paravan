@@ -2,7 +2,8 @@
 import { readText, writeText } from './text.js';
 import { readCsv, writeCsv } from './csv.js';
 import { readXlsx, writeXlsx } from './xlsx.js';
-import { readDocx } from './docx.js';
+import { readDocx, writeDocxRestored } from './docx.js';
+import { tagRegex, parseTagMatch } from '../core/tags.js';
 import { readPdf } from './pdf.js';
 
 const KINDS = ['md', 'txt', 'csv', 'xlsx', 'docx', 'pdf'];
@@ -34,14 +35,19 @@ export function readPasted(text) {
   return { kind: 'md', name: 'text-lipit.md', segments: [text], meta: {} };
 }
 
-export async function writeOutput(doc, segments, step) {
+// values: { '[PERSOANA_1]': 'Maria', … }, folosit doar la .docx în pasul 3.
+export async function writeOutput(doc, segments, step, values) {
   const suffix = step === 'anon' ? '-pseudonimizat' : '-restaurat';
   let outExt = doc.kind;
   let bytes;
   if (doc.kind === 'md' || doc.kind === 'txt') bytes = writeText(segments);
   else if (doc.kind === 'csv') bytes = writeCsv(doc.meta, segments);
   else if (doc.kind === 'xlsx') bytes = writeXlsx(doc.meta, segments);
-  else {
+  else if (doc.kind === 'docx' && step === 'restore' && values
+    && (bytes = await writeDocxRestored(doc.meta, values, tagRegex, parseTagMatch))) {
+    // .docx restaurat pe loc
+  } else {
+    if (doc.kind === 'docx' && step === 'restore') doc.meta.fallback = true;
     outExt = 'md';
     bytes = new TextEncoder().encode(segments.join('\n\n'));
   }

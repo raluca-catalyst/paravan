@@ -95,3 +95,27 @@ describe('formate', () => {
     expect(readPasted('salut')).toMatchObject({ kind: 'md', name: 'text-lipit.md', segments: ['salut'] });
   });
 });
+
+async function docxWith(bodyXml) {
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/></Types>');
+  zip.file('word/document.xml', `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${bodyXml}</w:body></w:document>`);
+  return zip.generateAsync({ type: 'uint8array' });
+}
+
+describe('docx la pasul 3', () => {
+  it('eticheta într-un singur fragment: iese .docx cu valoarea pusă la loc', async () => {
+    const doc = await readFile('rez.docx', await docxWith('<w:p><w:r><w:t>[PERSOANA_1] a decis &amp; gata.</w:t></w:r></w:p>'));
+    const out = await writeOutput(doc, ['Maria & Co a decis & gata.'], 'restore', { '[PERSOANA_1]': 'Maria & Co' });
+    expect(out.filename).toBe('rez-restaurat.docx');
+    const xml = await (await JSZip.loadAsync(out.bytes)).file('word/document.xml').async('string');
+    expect(xml).toContain('Maria &amp; Co a decis &amp; gata.');
+  });
+
+  it('eticheta ruptă în două fragmente: iese .md', async () => {
+    const doc = await readFile('rez.docx', await docxWith('<w:p><w:r><w:t>[PERSOANA</w:t></w:r><w:r><w:t>_1] a decis.</w:t></w:r></w:p>'));
+    const out = await writeOutput(doc, ['Maria a decis.'], 'restore', { '[PERSOANA_1]': 'Maria' });
+    expect(out.filename).toBe('rez-restaurat.md');
+    expect(doc.meta.fallback).toBe(true);
+  });
+});

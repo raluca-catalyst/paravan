@@ -37,3 +37,28 @@ export async function readDocx(bytes) {
   }
   return { segments, meta: { bytes } };
 }
+
+const encodeXml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// Pasul 3: pune valorile la loc direct în .docx, dacă fiecare etichetă stă într-un singur <w:t>.
+// Întoarce null când o etichetă e ruptă între fragmente (atunci se salvează .md, ca să nu stricăm documentul).
+export async function writeDocxRestored(meta, values, tagRegex, parseTagMatch) {
+  const zip = await JSZip.loadAsync(meta.bytes);
+  const swap = (text) => text.replace(tagRegex(), (...args) => {
+    const g = args.slice(0, 7);
+    const t = parseTagMatch(g);
+    return Object.hasOwn(values, t.tag) ? values[t.tag] : t.match;
+  });
+  const count = (text) => [...text.matchAll(tagRegex())].length;
+  const names = Object.keys(zip.files).filter((n) => PARTS.some((re) => re.test(n)));
+  for (const name of names) {
+    let xml = await zip.file(name).async('string');
+    for (const m of xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)) {
+      const pieces = [...m[0].matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map((x) => decodeXml(x[1]));
+      if (count(pieces.join('')) !== pieces.reduce((n, p) => n + count(p), 0)) return null;
+    }
+    xml = xml.replace(/(<w:t(?:\s[^>]*)?>)([\s\S]*?)(<\/w:t>)/g, (m, open, body, close) => open + encodeXml(swap(decodeXml(body))) + close);
+    zip.file(name, xml);
+  }
+  return zip.generateAsync({ type: 'uint8array' });
+}

@@ -134,7 +134,7 @@ $('run3').addEventListener('click', () => busy($('run3'), async () => {
     if (!doc) { setMsg('msg3', 'Alege rezultatul de la AI sau lipește-l.', true); return; }
     const r = restore(doc.segments, key);
     if (r.replaced === 0) { setMsg('msg3', 'Cheia nu se potrivește cu acest fișier: nu am găsit nicio etichetă din cheie.', true); return; }
-    state.restored = { doc, segments: r.segments };
+    state.restored = { doc, segments: r.segments, values: Object.fromEntries(key.entities.map((e) => [e.tag, e.value])) };
     $('dl-restored').hidden = false;
     $('step3').classList.add('active');
     const unknown = r.unknownTags.length ? ` Etichete care nu sunt în cheie, lăsate neatinse: ${r.unknownTags.join(', ')}.` : '';
@@ -145,8 +145,10 @@ $('run3').addEventListener('click', () => busy($('run3'), async () => {
 }));
 
 $('dl-restored').addEventListener('click', async () => {
-  const out = await writeOutput(state.restored.doc, state.restored.segments, 'restore');
+  const { doc, segments, values } = state.restored;
+  const out = await writeOutput(doc, segments, 'restore', values);
   download(out.bytes, out.filename, out.mime);
+  if (doc.meta.fallback) setMsg('msg3', 'Am salvat ca .md, ca să nu stric documentul Word.');
 });
 
 // Numele fișierului ales și tragerea fișierelor peste zonă.
