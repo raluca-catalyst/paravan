@@ -2,6 +2,8 @@
 import { detect } from '../detect/index.js';
 import { fold } from '../detect/normalize.js';
 import { findTags, tagOf } from './tags.js';
+import { tokenize } from '../detect/tokens.js';
+import { skipWord } from '../detect/names.js';
 
 function entityKey(span) {
   const v = span.text;
@@ -37,7 +39,38 @@ export function pseudonymize(segments, opts = {}) {
     }
   }
 
-  const detections = segments.map((s) => detect(s, manual));
+  // opts.whole[i]: categoria întregului segment (coloană de tabel cu antet „Nume”, „Telefon”…).
+  const whole = opts.whole || [];
+  const detections = segments.map((s, i) => {
+    if (whole[i] && s.trim()) {
+      const start = s.length - s.trimStart().length;
+      const text = s.trim();
+      return [{ start, end: start + text.length, category: whole[i], text, base: text }];
+    }
+    return detect(s, manual, { cell: !!opts.cells });
+  });
+
+  // Un nume găsit undeva în document se ascunde peste tot unde apare scris cu literă mare,
+  // inclusiv la început de propoziție, unde regulile singure l-ar fi lăsat („Floare a zis…”).
+  const known = new Set();
+  for (const spans of detections) {
+    for (const s of spans) {
+      if (s.category !== 'PERSOANA') continue;
+      for (const w of s.text.split(/[\s-]+/)) {
+        const f = fold(w);
+        if (f.length > 1 && !skipWord(f)) known.add(f);
+      }
+    }
+  }
+  detections.forEach((spans, i) => {
+    const extra = [];
+    for (const t of tokenize(segments[i])) {
+      if (!t.capitalized || !known.has(fold(t.text))) continue;
+      if (spans.some((s) => t.start < s.end && t.end > s.start)) continue;
+      extra.push({ start: t.start, end: t.end, category: 'PERSOANA', text: t.text, base: t.text });
+    }
+    if (extra.length) detections[i] = [...spans, ...extra].sort((a, b) => a.start - b.start);
+  });
 
   // Numele complete (2+ cuvinte), ca să știm cui aparține un prenume care apare singur.
   const fullNames = new Map(); // fold(base) -> cuvinte

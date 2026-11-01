@@ -34,7 +34,8 @@ describe('detectNames', () => {
   it('majuscule', () => expect(names('RAPORT: MARIA POPESCU, HR')).toEqual(['MARIA POPESCU']));
   it('etichete de vorbitor, fără roluri', () => expect(names('Coach: Cum te simți?\nMaria: Bine.')).toEqual(['Maria']));
   it('indicii de politețe', () => expect(names('Vorbesc cu dna. Zgârcea mâine.')).toEqual(['Zgârcea']));
-  it('nume care sunt și cuvinte', () => expect(names('Floare la ureche, mi-a zis Floare Lupu.')).toEqual(['Floare Lupu']));
+  // Din 1 nov (verificarea finală): numele-cuvinte mai rare se ascund și la început de propoziție; o etichetă în plus e acceptată.
+  it('nume care sunt și cuvinte', () => expect(names('Floare la ureche, mi-a zis Floare Lupu.')).toEqual(['Floare', 'Floare Lupu']));
   it('excepțiile nu se ascund', () => expect(names('Folosesc ChatGPT și Excel zilnic.')).toEqual([]));
   it('verbe cu pronume legate', () => expect(names('Scrie-i mâine. Spune-mi ce a zis.')).toEqual([]));
 });

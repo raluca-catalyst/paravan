@@ -28,11 +28,13 @@ export async function readFile(name, bytes) {
   else if (kind === 'docx') read = await readDocx(bytes);
   else read = await readPdf(bytes);
   if (read.segments.join('').trim() === '') throw new Error('Fișierul e gol');
-  return { kind, name, segments: read.segments, meta: read.meta };
+  // Forma Unicode compusă (NFC), ca „Ș” scris din două caractere să fie recunoscut.
+  const segments = read.segments.map((s) => s.normalize('NFC'));
+  return { kind, name, segments, meta: read.meta, whole: read.whole || null, cells: kind === 'csv' || kind === 'xlsx' };
 }
 
 export function readPasted(text) {
-  return { kind: 'md', name: 'text-lipit.md', segments: [text], meta: {} };
+  return { kind: 'md', name: 'text-lipit.md', segments: [text.normalize('NFC')], meta: {}, whole: null, cells: false };
 }
 
 // values: { '[PERSOANA_1]': 'Maria', … }, folosit doar la .docx în pasul 3.

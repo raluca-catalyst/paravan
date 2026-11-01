@@ -1,14 +1,15 @@
-// Detectează nume de persoane: liste, genitiv, indicii de politețe și plasa de siguranță
-// pentru cuvintele cu literă mare care nu sunt cuvinte obișnuite (decizia Ralucăi, 1 nov 2026).
+// Detectează nume de persoane: liste, genitiv, titluri și etichete de câmp, etichete de vorbitor
+// și plasa de siguranță pentru cuvintele cu literă mare care nu sunt cuvinte obișnuite (decizia Ralucăi, 1 nov 2026).
 import { fold } from './normalize.js';
 import { tokenize } from './tokens.js';
 import {
-  FIRST_FEMALE, FIRST_MALE, SURNAMES, DIMINUTIVES, COMMON_WORDS, NAME_COMMON_WORDS, ROLE_LABELS, ALLOWLIST,
+  FIRST_FEMALE, FIRST_MALE, SURNAMES, DIMINUTIVES, COMMON_WORDS, NAME_COMMON_WORDS, NAME_COMMON_FREQUENT,
+  ROLE_LABELS, ALLOWLIST, ACRONYMS, HINTS, FIELD_LABELS,
 } from './data/index.js';
 
-const CLITICS = new Set(['i', 'l', 'o', 'le', 'mi', 'm', 'ti', 'ne', 'va', 'v', 'si', 's', 'n', 'au', 'a', 'ai', 'am', 'ati', 'ar', 'as', 'or', 'ul', 'lui', 'ei', 'urile']);
-const HINTS = new Set(['dl', 'dna', 'd-l', 'd-na', 'domnul', 'doamna', 'domnului', 'doamnei', 'dr', 'dra', 'd-ra', 'domnisoara']);
-const GENITIVE = [['iei', 'ia'], ['căi', 'ca'], ['găi', 'ga'], ['ei', 'a']];
+const CLITICS = new Set(['i', 'l', 'o', 'le', 'mi', 'm', 'ti', 'ne', 'va', 'v', 'si', 's', 'n', 'au', 'a', 'ai', 'am', 'ati', 'ar', 'as', 'or', 'ul', 'lui', 'ei', 'urile', 'ului', 'uri', 'ii', 'lor', 'ilor']);
+const GENITIVE = [['eei', 'eea'], ['iei', 'ia'], ['căi', 'ca'], ['găi', 'ga'], ['ei', 'a']];
+const SPEAKER_LABEL = /(^|\n)[ \t]*(\p{Lu}[\p{L}\p{M}'’-]*(?:[ \t]+\p{Lu}[\p{L}\p{M}'’-]*){0,2})[ \t]*:/gu;
 
 const isListed = (f) => {
   const one = (p) => FIRST_FEMALE.has(p) || FIRST_MALE.has(p) || SURNAMES.has(p) || DIMINUTIVES.has(p);
@@ -36,23 +37,30 @@ function genitiveBase(word) {
   return null;
 }
 
+const skipWord = (f) => ALLOWLIST.has(f) || ROLE_LABELS.has(f) || HINTS.has(f) || FIELD_LABELS.has(f);
+
 function classify(tok, next, prev) {
   if (!tok.capitalized) return null;
   const f = fold(tok.text);
-  if (ALLOWLIST.has(f) || ROLE_LABELS.has(f)) return null;
+  if (skipWord(f)) return null;
+  // Acronim sau cuvânt din lista de excepții cu terminație: „CV-ul”, „HR-ului”, „Excel-ul”.
+  const parts = tok.text.split(/[-'’]/);
+  if (parts.length > 1 && (skipWord(fold(parts[0])) || (parts[0] === parts[0].toUpperCase() && parts[0].length <= 3))
+    && parts.slice(1).every((p) => CLITICS.has(fold(p)))) return null;
   const allCaps = tok.text === tok.text.toUpperCase();
   const listed = isListed(f);
   const common = isCommon(f);
 
+  // După un titlu („Ing.”, „dna.”) sau o etichetă de câmp („Nume:”) urmează un nume.
   if (prev && HINTS.has(fold(prev.text)) && /^\.?\s+$/.test(tok.gap)) return { kind: 'hint' };
-  if (allCaps && !listed && tok.text.length <= 5) return null; // acronime
-  // Genitivul unui prenume feminin („Mariei”, „Elenei”) se ascunde mereu: lista de nume de familie
-  // conține și forme de genitiv, iar dicționarul poate accepta forma ca pe un cuvânt.
+  if (prev && FIELD_LABELS.has(fold(prev.text)) && /^\s*:\s*$/.test(tok.gap)) return { kind: 'hint' };
+  if (allCaps && !listed && (tok.text.length <= 3 || ACRONYMS.has(f))) return null; // acronime
+  // Genitivul unui prenume feminin („Mariei”, „Andreei”) se ascunde mereu.
   const base = FIRST_FEMALE.has(f) || FIRST_MALE.has(f) ? null : genitiveBase(tok.text);
   if (base) return { kind: 'genitive', base };
   if (listed) {
-    if (!common) return { kind: 'listed' };
-    if (!tok.sentenceStart) return { kind: 'listed' };
+    // Doar cuvintele foarte frecvente („Mare”, „Gata”, „Din”) sunt scutite la început de propoziție.
+    if (!common || !NAME_COMMON_FREQUENT.has(f) || !tok.sentenceStart) return { kind: 'listed' };
     const nextIsName = next && next.capitalized && /^[ \t]+$/.test(next.gap) && isListed(fold(next.text));
     return nextIsName ? { kind: 'listed' } : null;
   }
@@ -60,13 +68,24 @@ function classify(tok, next, prev) {
   return null;
 }
 
-export function detectNames(text) {
-  const toks = tokenize(text);
+// opts.cell: textul e o celulă de tabel.
+export function detectNames(text, opts = {}) {
+  const toks = tokenize(text, opts);
   const hits = toks.map((t, i) => classify(t, toks[i + 1], toks[i - 1]));
 
-  // După un indiciu („dna.”), și următoarele cuvinte cu literă mare lipite fac parte din nume.
+  // Eticheta de vorbitor („Popa:”, „Floare:”) e nume dacă unul dintre cuvinte e în listele de nume.
+  for (const m of text.matchAll(SPEAKER_LABEL)) {
+    const start = m.index + m[1].length + m[0].slice(m[1].length).indexOf(m[2]);
+    const end = start + m[2].length;
+    const inLabel = toks.map((t, i) => [t, i]).filter(([t]) => t.start >= start && t.end <= end);
+    const anyListed = inLabel.some(([t]) => isListed(fold(t.text)) && !skipWord(fold(t.text)));
+    if (anyListed) for (const [t, i] of inLabel) if (!skipWord(fold(t.text)) && !hits[i]) hits[i] = { kind: 'listed' };
+  }
+
+  // După un titlu sau o etichetă de câmp, și următoarele cuvinte cu literă mare lipite fac parte din nume.
   for (let i = 1; i < toks.length; i++) {
-    if (!hits[i] && hits[i - 1] && hits[i - 1].kind === 'hint' && toks[i].capitalized && /^[ \t]+$/.test(toks[i].gap)) {
+    if (!hits[i] && hits[i - 1] && hits[i - 1].kind === 'hint' && toks[i].capitalized && /^[ \t]+$/.test(toks[i].gap)
+      && !skipWord(fold(toks[i].text))) {
       hits[i] = { kind: 'hint' };
     }
   }
@@ -93,3 +112,5 @@ export function detectNames(text) {
   }
   return spans;
 }
+
+export { skipWord };

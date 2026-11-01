@@ -12,8 +12,8 @@ for (const name of LOCALITIES) {
 }
 for (const list of INDEX.values()) list.sort((a, b) => b.length - a.length);
 
-export function detectPlaces(text) {
-  const toks = tokenize(text);
+export function detectPlaces(text, opts = {}) {
+  const toks = tokenize(text, opts);
   const spans = [];
   for (let i = 0; i < toks.length; i++) {
     const t = toks[i];

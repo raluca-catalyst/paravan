@@ -34,11 +34,11 @@ Regula de siguranță ascunde uneori și cuvinte inofensive, de exemplu un cuvâ
 | Încarci | La pasul 1 primești | La pasul 3 primești |
 |---|---|---|
 | `.md`, `.txt` | același format | același format |
-| `.csv`, `.xlsx` | același format, celulă cu celulă (fără formatare și formule) | același format |
+| `.csv`, `.xlsx` | același format, celulă cu celulă; `.xlsx` iese ca registru nou, doar cu valori (fără comentarii, linkuri, formule și metadate) | același format |
 | `.docx` | `.md` | `.docx`, dacă etichetele se pot înlocui fără să strice documentul; altfel `.md` |
 | `.pdf` (cu text) | `.md` | `.md` |
 
-Un PDF scanat, fără text, primește un mesaj clar.
+Un PDF scanat, fără text, primește un mesaj clar. În tabele, o coloană cu antet de date personale („Nume”, „Telefon”, „Data nașterii”) se ascunde întreagă. Numele fișierului trece și el prin reguli, ca fișierul dat AI-ului să nu poarte numele clientului.
 
 ## Exemplu
 

@@ -85,3 +85,20 @@ test('format nesuportat: mesaj clar', async ({ page }) => {
   await page.click('#run1');
   await expect(page.locator('#msg1')).toContainText('Format nesuportat');
 });
+
+test('numele fișierului nu duce date la AI; mesajele de la pasul 3', async ({ page }) => {
+  const dir = mkdtempSync(join(tmpdir(), 'paravan-'));
+  const file = join(dir, 'Sedinta Maria Popescu.md');
+  writeFileSync(file, 'Am vorbit cu Maria Popescu despre plan.');
+  await page.goto(page_url);
+  await page.setInputFiles('#file1', file);
+  await page.click('#run1');
+  const anon = await download(page, '#dl-anon');
+  expect(anon.name).not.toContain('Popescu');
+  expect(anon.name).toMatch(/-pseudonimizat\.md$/);
+
+  await page.fill('#paste3', 'Rezumat: [PERSOANA_1] vine. Apoi PERSOANA_1ului i-am scris.');
+  await page.click('#run3');
+  await expect(page.locator('#msg3')).toContainText('Sedinta Maria Popescu.md');
+  await expect(page.locator('#msg3')).toContainText('PERSOANA_1ului');
+});

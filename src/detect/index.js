@@ -38,8 +38,9 @@ function manualSpans(text, manual) {
   return out;
 }
 
-export function detect(text, manual = []) {
-  const all = [...manualSpans(text, manual), ...detectPatterns(text), ...detectNames(text), ...detectPlaces(text)];
+// opts.cell: textul e o celulă de tabel.
+export function detect(text, manual = [], opts = {}) {
+  const all = [...manualSpans(text, manual), ...detectPatterns(text), ...detectNames(text, opts), ...detectPlaces(text, opts)];
   all.sort((a, b) => (b.manual ? 1 : 0) - (a.manual ? 1 : 0)
     || (b.end - b.start) - (a.end - a.start)
     || rankOf(a) - rankOf(b));

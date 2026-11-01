@@ -1,7 +1,8 @@
 // .md și .txt: tot fișierul e un singur segment.
+import { decodeText } from './decode.js';
+
 export function readText(bytes) {
-  const text = new TextDecoder('utf-8').decode(bytes).replace(/^﻿/, '');
-  return { segments: [text], meta: {} };
+  return { segments: [decodeText(bytes)], meta: {} };
 }
 
 export function writeText(segments) {

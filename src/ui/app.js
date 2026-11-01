@@ -65,8 +65,16 @@ async function docFrom(fileInput, textarea) {
   return null;
 }
 
+const stemOf = (name) => name.replace(/\.[^.]+$/, '');
+const extOf = (name) => (name.match(/\.[^.]+$/) || [''])[0];
+
 function runPseudonymize() {
-  const r = pseudonymize(state.doc.segments, { manual: state.manual, source: state.doc.name });
+  // Numele fișierului trece prin aceleași reguli, ca fișierul descărcat să nu ducă numele clientului la AI.
+  const { doc } = state;
+  const r = pseudonymize([...doc.segments, stemOf(doc.name)], {
+    manual: state.manual, source: doc.name, cells: doc.cells, whole: doc.whole ? [...doc.whole, null] : null,
+  });
+  state.anonName = r.segments.pop().replace(/[\\/:*?"<>|]/g, '') + extOf(doc.name);
   state.result = r;
   state.key = r.key;
   $('chips').innerHTML = Object.entries(r.counts).map(([c, n]) => `<span class="chip">${countLabel(c, n)}</span>`).join('')
@@ -99,7 +107,7 @@ $('rerun').addEventListener('click', () => busy($('rerun'), async () => {
 }));
 
 $('dl-anon').addEventListener('click', async () => {
-  const out = await writeOutput(state.doc, state.result.segments, 'anon');
+  const out = await writeOutput({ ...state.doc, name: state.anonName }, state.result.segments, 'anon');
   download(out.bytes, out.filename, out.mime);
 });
 
@@ -134,11 +142,14 @@ $('run3').addEventListener('click', () => busy($('run3'), async () => {
     if (!doc) { setMsg('msg3', 'Alege rezultatul de la AI sau lipește-l.', true); return; }
     const r = restore(doc.segments, key);
     if (r.replaced === 0) { setMsg('msg3', 'Cheia nu se potrivește cu acest fișier: nu am găsit nicio etichetă din cheie.', true); return; }
-    state.restored = { doc, segments: r.segments, values: Object.fromEntries(key.entities.map((e) => [e.tag, e.value])) };
+    const name = restore([stemOf(doc.name)], key).segments[0] + extOf(doc.name);
+    state.restored = { doc: { ...doc, name }, segments: r.segments, values: Object.fromEntries(key.entities.map((e) => [e.tag, e.value])) };
     $('dl-restored').hidden = false;
     $('step3').classList.add('active');
+    const source = key.source ? ` Cheia folosită: „${key.source}”. Verifică dacă e cheia potrivită.` : '';
     const unknown = r.unknownTags.length ? ` Etichete care nu sunt în cheie, lăsate neatinse: ${r.unknownTags.join(', ')}.` : '';
-    setMsg('msg3', `Am pus la loc ${r.replaced} ${r.replaced === 1 ? 'dată' : 'date'}.${unknown}`);
+    const left = r.leftovers.length ? ` Am găsit și urme de etichete pe care nu le-am putut citi, verifică-le de mână: ${r.leftovers.join(', ')}.` : '';
+    setMsg('msg3', `Am pus la loc ${r.replaced} ${r.replaced === 1 ? 'dată' : 'date'}.${source}${unknown}${left}`, !!(r.unknownTags.length || r.leftovers.length));
   } catch (e) {
     setMsg('msg3', e instanceof SyntaxError ? 'Fișierul cheii nu e valid.' : (e.message || 'Nu am putut citi fișierul.'), true);
   }

@@ -32,8 +32,13 @@ const localities = [...new Set(csv.map((l) => l.split(',')[2]).filter(Boolean).m
 // Lista de frecvență vine din subtitrări și conține și nume străine (john, jack).
 // Păstrăm doar cuvintele pe care dicționarul românesc hunspell le acceptă scrise cu literă mică.
 const spell = nspell(roDictionary);
+const wordLines = (await get(WORDS)).split(/\r?\n/);
+const rank = new Map();
+wordLines.forEach((l, i) => { const w = fold(l.split(' ')[0] || ''); if (w && !rank.has(w)) rank.set(w, i); });
+// Numele-cuvinte foarte frecvente („din”, „mare”, „gata”) rămân scutite la început de propoziție.
+const FREQUENT_RANK = 1000;
 const commonAll = new Set(
-  (await get(WORDS)).split(/\r?\n/)
+  wordLines
     .map((l) => fixCedilla((l.split(' ')[0] || '').toLowerCase()))
     .filter((w) => /^\p{L}[\p{L}'-]*$/u.test(w) && spell.correct(w))
     .map(fold),
@@ -56,6 +61,7 @@ write('surnames.json', [...new Set(surnames)].sort());
 write('localities.json', localities);
 write('common_words.json', common.sort());
 write('name_common_words.json', [...nameCommon].sort());
+write('name_common_frequent.json', [...nameCommon].filter((w) => (rank.get(w) ?? Infinity) < FREQUENT_RANK).sort());
 
 console.log({ female: female.length, male: male.length, surnames: surnames.length, localities: localities.length, common: common.length, nameCommon: nameCommon.size });
 console.log('nume care sunt și cuvinte:', [...nameCommon].sort().join(' '));
