@@ -6,7 +6,7 @@ export function restore(segments, key) {
   const unknown = new Set();
   let replaced = 0;
   const out = segments.map((seg) => seg.replace(tagRegex(), (...args) => {
-    const groups = args.slice(0, 5);
+    const groups = args.slice(0, 7);
     groups.index = args[args.length - 2];
     const t = parseTagMatch(groups);
     if (values.has(t.tag)) {

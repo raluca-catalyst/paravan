@@ -46,14 +46,16 @@ function classify(tok, next, prev) {
 
   if (prev && HINTS.has(fold(prev.text)) && /^\.?\s+$/.test(tok.gap)) return { kind: 'hint' };
   if (allCaps && !listed && tok.text.length <= 5) return null; // acronime
+  // Genitivul unui prenume feminin („Mariei”, „Elenei”) se ascunde mereu: lista de nume de familie
+  // conține și forme de genitiv, iar dicționarul poate accepta forma ca pe un cuvânt.
+  const base = FIRST_FEMALE.has(f) || FIRST_MALE.has(f) ? null : genitiveBase(tok.text);
+  if (base) return { kind: 'genitive', base };
   if (listed) {
     if (!common) return { kind: 'listed' };
     if (!tok.sentenceStart) return { kind: 'listed' };
     const nextIsName = next && next.capitalized && /^[ \t]+$/.test(next.gap) && isListed(fold(next.text));
     return nextIsName ? { kind: 'listed' } : null;
   }
-  const base = genitiveBase(tok.text);
-  if (base && !(common && tok.sentenceStart)) return { kind: 'genitive', base };
   if (!common) return { kind: 'fallback' };
   return null;
 }

@@ -16,8 +16,8 @@ describe('detect', () => {
 describe('pseudonymize + restore', () => {
   const first = pseudonymize(['Maria Popescu: Am vorbit cu Ion. Maria e ok.', 'Am sunat-o pe sora Mariei la 0722 123 456']);
 
-  it('etichete consecvente, genitivul devine „lui [TAG]”', () => {
-    expect(first.segments[0]).toBe('[PERSOANA_1]: Am vorbit cu [PERSOANA_2]. [PERSOANA_1] e ok.');
+  it('etichete consecvente, genitivul devine „lui [TAG]”, forma completă are varianta ei', () => {
+    expect(first.segments[0]).toBe('[PERSOANA_1_B]: Am vorbit cu [PERSOANA_2]. [PERSOANA_1] e ok.');
     expect(first.segments[1]).toBe('Am sunat-o pe sora lui [PERSOANA_1] la [TELEFON_1]');
     expect(first.counts).toEqual({ PERSOANA: 2, TELEFON: 1 });
     expect(first.key.entities.find((e) => e.tag === '[PERSOANA_1]').value).toBe('Maria');
@@ -39,6 +39,11 @@ describe('pseudonymize + restore', () => {
     expect(r.unknownTags).toEqual(['[PERSOANA_9]']);
   });
 
+  it('varianta de formă se restaurează exact, și tolerant', () => {
+    expect(restore(['[PERSOANA_1_B] a semnat, [persoana_1_b] la fel.'], first.key).segments[0])
+      .toBe('Maria Popescu a semnat, Maria Popescu la fel.');
+  });
+
   it('cheie greșită: nimic restaurat', () => {
     expect(restore(['[EMAIL_1] scrie'], first.key).replaced).toBe(0);
   });
@@ -57,8 +62,8 @@ describe('pseudonymize + restore', () => {
   });
 
   it('findTags găsește variantele', () => {
-    expect(findTags('x [PERSOANA_1] y persoana 2 z \\[EMAIL\\_3\\]').map((t) => `${t.category}${t.n}`))
-      .toEqual(['PERSOANA1', 'EMAIL3']);
+    expect(findTags('x [PERSOANA_1] y persoana 2 z \\[EMAIL\\_3\\] w PERSOANA_4_C').map((t) => t.tag))
+      .toEqual(['[PERSOANA_1]', '[EMAIL_3]', '[PERSOANA_4_C]']);
   });
 
   it('text mare în sub 5 secunde', () => {

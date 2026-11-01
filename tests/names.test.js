@@ -23,6 +23,12 @@ describe('detectNames', () => {
     expect(names('I-am spus Mariei tot.')).toEqual(['Mariei']);
     expect(detectNames('I-am spus Mariei tot.')[0]).toMatchObject({ base: 'Maria', genitive: true });
   });
+  it('genitiv la început de propoziție, chiar dacă seamănă cu un cuvânt', () => {
+    expect(detectNames('Elenei nu i-a plăcut.')[0]).toMatchObject({ text: 'Elenei', base: 'Elena', genitive: true });
+  });
+  it('genitiv care apare și în lista de nume de familie', () => {
+    expect(detectNames('Am vorbit despre părerea Ioanei.')[0]).toMatchObject({ base: 'Ioana', genitive: true });
+  });
   it('diminutiv', () => expect(names('L-am sunat pe Ionuț.')).toEqual(['Ionuț']));
   it('variante de diacritice', () => expect(names('Stefan și Ştefan au venit.')).toEqual(['Stefan', 'Ştefan']));
   it('majuscule', () => expect(names('RAPORT: MARIA POPESCU, HR')).toEqual(['MARIA POPESCU']));

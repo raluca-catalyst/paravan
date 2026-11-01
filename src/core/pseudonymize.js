@@ -21,6 +21,9 @@ function entityKey(span) {
   }
 }
 
+// 1 → B, 2 → C, … 25 → Z, apoi BB, CC.
+const variantLetter = (i) => String.fromCharCode(65 + ((i - 1) % 25) + 1).repeat(Math.floor((i - 1) / 25) + 1);
+
 const words = (s) => fold(s).split(/[\s-]+/).filter(Boolean);
 
 export function pseudonymize(segments, opts = {}) {
@@ -52,35 +55,49 @@ export function pseudonymize(segments, opts = {}) {
     return (owners.length === 0 ? 'one:' : 'ambiguous:') + w[0];
   };
 
+  // Prima trecere: entitățile, numerotate în ordinea apariției, și formele fiecăreia.
   const entities = new Map(); // category|key -> entitate
-  const out = segments.map((seg, si) => {
-    let result = '';
-    let pos = 0;
-    for (const s of detections[si]) {
-      const key = s.category + '|' + (s.category === 'PERSOANA' ? personKey(s) : entityKey(s));
-      let e = entities.get(key);
-      if (!e) {
-        counters[s.category] = (counters[s.category] || 0) + 1;
-        e = { tag: tagOf(s.category, counters[s.category]), category: s.category, forms: new Map() };
-        entities.set(key, e);
-      }
-      const form = s.base || s.text;
-      e.forms.set(form, (e.forms.get(form) || 0) + 1);
-      result += seg.slice(pos, s.start);
-      result += s.genitive && !/lui\s$/i.test(result) ? 'lui ' + e.tag : e.tag;
-      pos = s.end;
+  const occurrences = detections.map((spans) => spans.map((s) => {
+    const key = s.category + '|' + (s.category === 'PERSOANA' ? personKey(s) : entityKey(s));
+    let e = entities.get(key);
+    if (!e) {
+      counters[s.category] = (counters[s.category] || 0) + 1;
+      e = { n: counters[s.category], category: s.category, forms: new Map() };
+      entities.set(key, e);
     }
-    return result + seg.slice(pos);
-  });
+    const form = s.base || s.text;
+    e.forms.set(form, (e.forms.get(form) || 0) + 1);
+    return { span: s, entity: e, form };
+  }));
 
+  // Forma folosită cel mai des primește eticheta de bază; celelalte forme primesc variante (_B, _C),
+  // ca dezanonimizarea să pună la loc exact forma din original („Ioana Mărgineanu” vs. „Ioana”).
   const counts = {};
   const list = [];
   for (const e of entities.values()) {
     counts[e.category] = (counts[e.category] || 0) + 1;
-    // Valoarea pusă la loc: forma folosită cel mai des; la egalitate, cea mai lungă.
-    const value = [...e.forms.entries()].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0][0];
-    list.push({ tag: e.tag, category: e.category, value, forms: [...e.forms.keys()] });
+    const ordered = [...e.forms.entries()].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length).map(([f]) => f);
+    e.tags = new Map();
+    ordered.forEach((form, i) => {
+      const variant = i === 0 ? '' : variantLetter(i);
+      const tag = tagOf(e.category, e.n, variant);
+      e.tags.set(form, tag);
+      list.push({ tag, category: e.category, value: form });
+    });
   }
+
+  // A doua trecere: textul cu etichete.
+  const out = segments.map((seg, si) => {
+    let result = '';
+    let pos = 0;
+    for (const { span, entity, form } of occurrences[si]) {
+      const tag = entity.tags.get(form);
+      result += seg.slice(pos, span.start);
+      result += span.genitive && !/lui\s$/i.test(result) ? 'lui ' + tag : tag;
+      pos = span.end;
+    }
+    return result + seg.slice(pos);
+  });
 
   return {
     segments: out,
